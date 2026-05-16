@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------
+  # 1. SERVICIO DE BASE DE DATOS
+  # ----------------------------------------------------
+  database:
+    build: 
+      context: ./db
+      dockerfile: Dockerfile
+    container_name: db_tienda
+    ports:
+      - "3306:3306"
+    networks:
+      - red_interna
+    volumes:
+      # AQUÍ ESTÁ LA MAGIA DE LA PERSISTENCIA (Named Volume)
+      # Mapeamos nuestro volumen seguro hacia la ruta interna donde MySQL guarda sus datos reales
+      - db_data:/var/lib/mysql
+
+  # ----------------------------------------------------
+  # 2. SERVICIO BACKEND (API)
+  # ----------------------------------------------------
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api_backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - database
+    networks:
+      - red_interna
+    environment:
+      # Pasamos las credenciales para que Node.js pueda conectarse a la BD
+      - DB_HOST=database
+      - DB_USER=alumno
+      - DB_PASSWORD=alumno123
+      - DB_NAME=tienda_perritos
+
+  # ----------------------------------------------------
+  # 3. SERVICIO FRONTEND (Web)
+  # ----------------------------------------------------
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: web_frontend
+    ports:
+      # Exponemos el puerto 8080 hacia el exterior
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - red_interna
+
+# ==========================================
+# DEFINICIÓN DE REDES Y VOLÚMENES
+# ==========================================
+networks:
+  red_interna:
+    driver: bridge
+
+volumes:
+  # Declaramos explícitamente la creación de nuestro Named Volume
+  db_data:
