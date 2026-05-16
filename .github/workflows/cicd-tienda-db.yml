@@ -2,9 +2,10 @@ name: CI/CD Tienda Perritos - DB
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "deploy" ]
     paths:
       - "db/**"
+  workflow_dispatch:
 
 jobs:
   build-push-deploy-db:
@@ -23,14 +24,14 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Login en Amazon ECR (runner)
-      uses: aws-actions/amazon-ecr-login@v1
+      uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build imagen DB y push a ECR
       run: |
         cd db
         docker build -t tienda-db .
-        docker tag tienda-db:latest ${{ secrets.ECR_REPO_URL_DB }}:latest
-        docker push ${{ secrets.ECR_REPO_URL_DB }}:latest
+        docker tag tienda-db:latest ${{ secrets.ECR_REGISTRY }}/tienda-db:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/tienda-db:latest
 
     - name: Desplegar DB vía SSM
       run: |
@@ -41,9 +42,9 @@ jobs:
           --parameters '{"commands":[
             "set -e",
             "aws ecr get-login-password --region '${{ secrets.AWS_REGION }}' | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}",
-            "docker pull ${{ secrets.ECR_REPO_URL_DB }}:latest",
+            "docker pull ${{ secrets.ECR_REGISTRY }}/tienda-db:latest",
             "docker stop tienda-db || true",
             "docker rm tienda-db || true",
-            "docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql ${{ secrets.ECR_REPO_URL_DB }}:latest"
+            "docker run -d --name tienda-db -p 3306:3306 -v dbdata:/var/lib/mysql ${{ secrets.ECR_REGISTRY }}/tienda-db:latest"
           ]}' \
           --output text
