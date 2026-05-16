@@ -43,6 +43,6 @@ jobs:
             "docker pull ${{ secrets.ECR_REGISTRY }}/tienda-backend:latest",
             "docker stop tienda-backend || true",
             "docker rm tienda-backend || true",
-            "docker run -d --name tienda-backend -p 3001:3001 ${{ secrets.ECR_REGISTRY }}/tienda-backend:latest"
+            "docker run -d --name tienda-backend -p 3001:3001 -e DB_HOST=10.0.145.39 -e DB_USER=root -e DB_PASSWORD=secret -e DB_NAME=tienda_perritos ${{ secrets.ECR_REGISTRY }}/tienda-backend:latest"
           ]}' \
           --output text
